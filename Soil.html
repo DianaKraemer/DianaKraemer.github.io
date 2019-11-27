@@ -1,7 +1,27 @@
 <!DOCTYPE html>
 <html>
 <body bgcolor="#FFB6C1">
-<h1>Read Moisture Content of Soil</h1> 
+<h1>Read Moisture and Temperature Content of Soil</h1> 
+<p>
+I am using <a href=https://learn.adafruit.com/adafruit-stemma-soil-sensor-i2c-capacitive-moisture-sensor> Adafruit's Stemma Soil Sensor </a href> to monitor soil moisture and temperature. 
+<br>
+<br>
+The volume of water in soil is changes the dialectric permititivty of the soil, so a change in water levels means a change in capacitance; low water levels means higher capacitance. However, what 
 
+1.) Calibration
+<br>
+To make sense of the capacitive readings from the device, I needed some baseline information. I took 10 measurements of the Stemma in air, on the bench for fully dry. The average was 382.9, which I will round up to 383. The Stemma in a glass of water with 10 measurements gave an average of 861.2, rounded down to 861. 
+<br>
+These numbers are useful, but the "ideal" water content for succulents is difficult to say. They are desert plants, they're used to no water and different plants come from different locations meaning they have different needs. Right now many of my plants are in their dormant season, meaning the need water every 3-4 weeks. Others are in their growing season and need water every 10-14 days. To further this I will need to test the plants directly. 
+<br>
+
+<p>
+
+Adafruit provides code to run this and despite my desires to understand the device down to a register level (an unhealthy obsession, I think), I thought it better to use the provided library and examples for this device. They work as expected. 
+<br>
+However, because I know I want these things to read values on user input only, I decided to set up a push-button feature, at least for bench testing. And, like with fan testing, I used the on board LED to help me see what state my code is in. 
+
+<p>
+There are "push-a-button" libraries available, of course, but why not create my own? I've done debouncing before, I can do this. Setting up the button proved to be harder than I thought though. 
 </body>
 </html>
