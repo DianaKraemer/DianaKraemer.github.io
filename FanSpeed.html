@@ -3,5 +3,30 @@
 <body bgcolor="#FFB6C1">
 <h1>Change Fan Speed</h1> 
 
+<h3> Frequency Modulation </h3>
+I wanted to be able to change the speeds on the fans in case the temperature around the plants was too high. To do this I needed a <a href=https://learn.sparkfun.com/tutorials/pulse-width-modulation/all> Pulse Width Modulation (PWM) </a href> fan. 
+<p>
+My Arduino uno has a couple of pins that can do PWM with bit-banging but this isn't sufficient to run a PWM fan. To create the frequency I needed, I had to modify a timer by writing values to the appropriate registers.There are many, many ways to do this and understanding what I needed was the hardest part. Most tutorials presented a simple on/off functionality. I wanted to be able to modify the speeds. I knew that I would need the 16 bit timer (Timer1) because of the high frequency I needed. 
+<p>
+Coding this was quite the challenge; it took me about 2 weeks to figure out. There are libraries and plenty of tutorials on how to set up a PWM fan on an Arduino. I have a hard time simply using someone else's library because I want to have a deep understanding of what I'm doing. (It is my goal to desire a function, find a chip, design a board and write a library for it. I know I have quite a ways to go on this.)
+<p>
+After I spent quite a while browsing forums, tutorials and the Arduino's processor data sheet, (it is very dense) I was able to put together some code that got the fan to run, but only at one speed. I read that the code I was using would work for set duty cycles. Ok, I have that, right? I know I want low, medium and high settings and those are pre-defined duty cycles, so what's went wrong? 
+<br>
+I pondered this for a while and I realized that what I <b>actually</b> wanted to do was change the values dynamically. The values themselves were set (IE, not controlled by a potentiometer), BUT how they operated was dynamic. I wanted the fan to be running at a speed, and then abruptly change the speed based on user input which is a <b>dynamic</b> action. 
+
+<p>
+To test my code I put the state changing functions in a loop and set a board level LED to turn on and off. I have not noticed much difference between low and medium, but there is definitely a difference between medium and high. Perhaps I'll have to stick with low and high. Further testing required, but the loop worked and the fan speed changed automatically. 
+
+<p>
+<h3> Power Considerations </h3>
+<a href=https://noctua.at/en/nf-b9-redux-1600-pwm> The fan </a href> I started with is a 12V, 8mA for a total input power of 96mW. As of 11/22/2019 I'm unsure if this fan will meet my needs. The company offers more fans, I picked this one off Amazon because it was cheap and would arrive quickly. I was surprised at how much more expensive (this fan is $11) PWM fans are compared to "regular" fans, which (of course depend on the style you get) I've found as low as $4. 
+<p> 
+The Arduino I'm using the control the fan(s) does not have the voltage output required, which means I need a separate power supply. I focused on electromagnetics/RF during my undergrad, so I thought it would be a great challenge to build my own AC to DC converted that puts out the power I need. 
+
+<h3> Frequency Considerations </h3>
+My plants are lit by a basic strip shop light from Home Depot. <a href=https://www.homedepot.com/p/Lithonia-Lighting-2-Light-White-T8-Fluorescent-Residential-Shop-Light-1233-RE/202994372> Something like this </a href> I spent sometime considering the possible effects of the PWM signal on lighting and came to the conclusion that the 2uT max possible magnetic field coming from the fan wires isn't sufficient to affect the lighting. Much the same, the small output from the lights are unlikely to affect the PWM signal. 
+<br>
+To be safe (as well as more aesthetically pleasing) I'll be using a twisted-strand wire encased in a white (to match the walls) wire housing. 
+<p>
 </body>
 </html>
