@@ -85,7 +85,9 @@ directly because its not possible to get this frequency with standard output fun
 
 Useful definitions:
 OCRnX: Output Compare Registers. These registers hold compare values that determine the duty cycle of the PWM wave. 
-WGM: Waveform Generation Mode. These determine the counting sequence. There are 4 options. 
+WGM: Waveform Generation Mode. These determine the counting sequence. There are 4 main modes of operation (normal, clear timer
+on compare match, fast PWM and phase/frequency correct PWM). Further specificiations are definied in the data sheet. My choices will 
+be explained. 
 
 TCNTx: Timer Counter Number. 
 TCCRnX: Timer Counter Control Registers. 
