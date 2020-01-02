@@ -56,11 +56,12 @@ RF24 radio(9, 8);
 //Begin Setup.
 void setup() {
 Serial.begin(9600);
-  Serial.println("NA NA NA NA NA NA NA NA PLANTCAM!");
-  //Serial.println(speed); 
+Serial.println("NA NA NA NA NA NA NA NA PLANTCAM!");
 
-//Interrupt created for fam RPM reporting. 
-attachInterrupt(0, rpm, RISING);
+
+//Interrupt created for fam RPM reporting. Runs when sei(); is called. 
+attachInterrupt(0, rpm, RISING); //(pin, routine to call, rising=trigger when the pin goes from low to high)
+
 
 //start nrf radio
 radio.begin();
@@ -80,23 +81,32 @@ pinMode(LED_BUILTIN, OUTPUT); // use the onboard LED to help debugg
 pinMode(tachPin, INPUT); // fan tachpin input reading
 
 */PWM fan notes:
-Using Timer1 because it's 16 bits and is the only one available that can count up to 25KHz. To do this I need to modify the registers 
-directly because its not possible to get this frequency with standard output functions.
+Using Timer1 because it's 16 bits and is the only one that can count up to 25KHz. To do this I need to modify the registers 
+directly because its not possible to get this frequency with standard output functions, such as bit-banging or a delay function.
 
 Useful definitions:
 OCRnX: Output Compare Registers. These registers hold compare values that determine the duty cycle of the PWM wave. 
-WGM: Waveform Generation Mode. These determine the counting sequence. There are 4 main modes of operation (normal, clear timer
-on compare match, fast PWM and phase/frequency correct PWM). Further specificiations are definied in the data sheet. My choices will 
+WGM: Waveform Generation Mode. These bits determine the counting sequence, which is how the timer will be used. My choices will 
 be explained. 
 
-TCNTx: Timer Counter Number. 
-TCCRnX: Timer Counter Control Registers. 
+TCNTx: Timer Counter Number. Incremented automatically with the system clock. Increments can be changed with a prescaller BUT this 
+will affect the quality of the PWM signal. 
+TCCRnX: Timer Counter Control Registers. These hold the settings for the desired timer. WGM, clock select and compare match output
+settings are set in here. 
+OCRnA==output compare registers. The output is on the OCnA or OCnB pins. 
+
+
 Note that doing this automatically changes OCR1A, setting it as an output. We just have to define which pin and how the output changes.
 The counting sequence is determined by the setting of the waveform generator bits. This determines
 non-pwm, fast pwm, etc. These are the "WGM" bits.
 CTC mode=non-PWM!
-OCRnA==output compare registers.
-Want phase and frequency correct mode with ORC1A as top because of the changing TOP value.
+
+My choices: I know that I want phase and frequency correct mode bceause this mode has high resolution. PWM fan resolution determines
+the duty cycle. With my current values, OCR1A=320 max, giving 8bit resolution. 2^8=256=
+. Because I want the fan speeds to change dynamically, I know that I need
+to use the buffer feature of the timer. The buffer allows the CPU to access a copy of the TOP value (OCR1A value) and modify behavior.
+I want ORC1A as a TOP value because of the dynamic fan speed
+options. 
  OCR1A provides a buffer for dynamic values, ICR1 does not.
   */
   
@@ -118,23 +128,23 @@ void rpm (){
 
 void loop() {
   fancount=0;  //reset the rpm count every loop iteration
-
-    radio.startListening() ;        // start listening forever
-   char receivedMessage[1];   // set incmng message for 1 byte for a single word. 
-   char sentMessage[4];
-   String processedMessage="high"; //NOTE: manually set this for TACH signal setup/debugg. Should be "" normally. 
+  radio.startListening() ;        // start listening forever
+  char receivedMessage[1];   // set incmng message for 1 byte for a single word. 
+  char sentMessage[4]; //handshake variable. Currently unused. 
+  String processedMessage="high"; //NOTE: manually set this for TACH signal setup/debugg. Should be "" normally. 
   if (radio.available()) { 
     radio.read(receivedMessage, sizeof(receivedMessage));  // read the message and save. (Save to where/what?)
     
-    for(int i = 0; i < sizeof(receivedMessage); i++) //looping through the recieved message array, so
-    //I know its still an array. println automatically converts chars to ascii string. Assures that If..else if checks will pass.
-{
-  processedMessage+=receivedMessage[i];
-}
-Serial.println(processedMessage);
-  
-    //what format do I want the message to come in? Does it matter? 
-    //start with integers and go from there? 1=low, 2=med, 3=high. 
+    /*println automatically converts chars to ascii string. This code takes the received char message and turn into a string for 
+    if/else checks to execute further code. I chose this to better interface with people using the website. They can then 
+    select "high, low, soil" etc.     
+    */
+    for(int i = 0; i < sizeof(receivedMessage); i++){
+     processedMessage+=receivedMessage[i];
+      }
+      
+     //print out the processed message. Testing and verification purposes. 
+  Serial.println(processedMessage);
     if (processedMessage=="low"){
       fanOut(1);
     }
@@ -150,9 +160,10 @@ Serial.println(processedMessage);
 //for pullup.Can use the same pins but then need each device to have different addressing.
 
 
-//following code used to set up and text Tach signal. Will need to be integrated into the actual functions later. 
+//TACH signal functions. Will need to be integrated into the actual functions later. 
 if (processedMessage=="high"){
       fanOut(2);
+  //enable interripts. Note that this built-in interrupt function uses timer0 so I don't have to worry about it affecting the fans. 
       sei();
  
 //Wait 1 second
@@ -161,7 +172,7 @@ delay (1000);
 //Disable interrupts
 cli();
 
-rpms=(fancount/2)*60;  //from the fan's data sheet
+rpms=(fancount/2)*60;  //#rpms is equal to the fan count in 1 second/(# of magnets attached to the rotor)*60. #magnets assumed to be 2.
 Serial.println(rpms);
     }
 }
@@ -208,7 +219,7 @@ can just call fanOut(HIGH), instead of fanSpeed.
   //to find a way to do this.
 void fanOut(int speed) { 
   int maxSpeed=320; //the max value of the OCR1A
-  //int value; /  /value=255/
+  //int value; //value=255/
   switch (speed) {
     
     case 1:
