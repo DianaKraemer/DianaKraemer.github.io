@@ -11,4 +11,4 @@ Hardware list:
 
 -1 STEMMA soil reader (adafruit)
 
--Connecting hardware, breadboard, etc. 
+-Connecting hardware, breadboard,  
