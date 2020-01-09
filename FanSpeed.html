@@ -6,22 +6,45 @@
 <h3> Frequency Modulation </h3>
 I wanted to be able to change the speeds on the fans in case the temperature around the plants was too high. To do this I needed a <a href=https://learn.sparkfun.com/tutorials/pulse-width-modulation/all> Pulse Width Modulation (PWM) </a href> fan. 
 <p>
-My Arduino uno has a couple of pins that can do PWM with bit-banging but this isn't sufficient to run a PWM fan. To create the frequency I needed, I had to modify a timer by writing values to the appropriate registers.There are many, many ways to do this and understanding what I needed was the hardest part. Most tutorials presented a simple on/off functionality. I wanted to be able to modify the speeds. I knew that I would need the 16 bit timer (Timer1) because of the high frequency I needed.  <br><img src="pwmMode10.png"  width="500" height="230" align="left" style=”float:left”>
-This image is fan mode 10 while I am using fan mode 9, but it illustrates the same principle; in this case, ICR1 is the TOP value and OCR1A counts to the top value. Wh
+My Arduino uno has a couple of pins that can do PWM with bit-banging but this isn't sufficient to run a PWM fan. To create the frequency I needed, I had to modify a timer by writing values to the appropriate registers.There are many, many ways to do this and understanding what I needed was the hardest part. Most tutorials presented a simple on/off functionality. I wanted to be able to modify the speeds. I knew that I would need the 16 bit timer (Timer1) because of the high frequency I needed.  <br>
+<h3>So how does this all work?</h3>
+<img src="pwmMode10.png" width="500" height="230" ><p>
+
+
+The image above illustrates fan mode 10. I was linked a summary of mode 10 in an Arduino forum question I started. I'll walk you through it. I'm using fan mode 9 but it illustrates the same principle. Note that the image demonstrates the period of the PWM signal. 
+First its important to have some definitions: <p>
+1.) TCNTx: Timer Counter Number. Incremented automatically with the system clock. Increments can be changed with a pre-scaler BUT this will affect the quality of the PWM signal. 
 <p>
-Coding this was quite the challenge; it took me about 2 weeks to figure out. There are libraries and plenty of tutorials on how to set up a PWM fan on an Arduino. I have a hard time simply using someone else's library because I want to have a deep understanding of what I'm doing. (It is my goal to desire a function, find a chip, design a board and write a library for it. I know I have quite a ways to go on this.)
+2.) OCRnX: output compare registers. "n" is the number that corresponds to the chosen timer. X is the letter, A or B that corresponds to the specific chosen register. Not all timers have 2 registers. Timer 1 does because it's a larger (16bit) timer. 
+<p>
+3.)OCnA or OCnB: The output pins that correspond to the desired register.  
+<p>
+4.) OCF1n: These are flags that are set automatically upon a match. They signal to the waveform generator when to turn the OCnA/B pins on and off. Basically, they control the signals to the output. 
+<p>
+<h3>How does it all come together?</h3>
+<p>
+First, it's important to understand that this particular mode is dual sloped, meaning that the counter register (TCNT1) counts up to the TOP value and then back down to BOTTOM. The lines making the triangles represent this counting. This means that 1 period is equal to 1 set of count up and then count down. And frequency is the inverse of period, so the larger your TOP value, the faster your frequency. HOWEVER! The data sheet knows the counting is dual-slopped and the equation it provides for frequency will provide the correct TOP value; it does not need to be doubled. 
+<p>
+Second: OCR1A holds the compare value. While TCNT1 is counting up to TOP, then TCNT1==OCR1A, a flag (OCF1A) is set. What happens after that is determined by other settings; in this example, the first flag triggers the output to be off. The counter keeps going and when TCNT1==OCR1A again, the output is turned back on. And so on. 
+<p>
+From this analysis, it's clear that the frequency is set by the TOP value and the duty cycle is set by OCRnX registers. 
+In my scenario, OCR1A is TOP and OCR1B determines the duty cycle. 
+<p>
+<h3> The Process </h3>
+Coding this has been quite the challenge; I'm updating this as I learn more.There are libraries and plenty of tutorials on how to set up a PWM fan on an Arduino. I have a hard time simply using someone else's library because I want to have a deep understanding of what I'm doing. (It is my goal to desire a function, find a chip, design a board and write a library for it. I know I have quite a ways to go on this.)
 <p>
 After I spent quite a while browsing forums, tutorials and the Arduino's processor data sheet, (it is very dense) I was able to put together some code that got the fan to run, but only at one speed. I read that the code I was using would work for set duty cycles. Ok, I have that, right? I know I want low, medium and high settings and those are pre-defined duty cycles, so what's went wrong? 
 <br>
-I pondered this for a while and I realized that what I <b>actually</b> wanted to do was change the values dynamically. The values themselves were set (IE, not controlled by a potentiometer), BUT how they operated was dynamic. I wanted the fan to be running at a speed, and then abruptly change the speed based on user input which is a <b>dynamic</b> action. 
+I pondered this for a while and I realized that what I <b>ACTUALLY</b> wanted to do was change the values dynamically. The values themselves were set (IE, not controlled by a potentiometer), BUT how they operated was dynamic. I wanted the fan to be running at a speed, and then abruptly change the speed based on user input which is a <b>dynamic</b> action. 
 
 <p>
-To test my code I put the state changing functions in a loop and set a board level LED to turn on and off. I have not noticed much difference between low and medium, but there is definitely a difference between medium and high. Perhaps I'll have to stick with low and high. Further testing required, but the loop worked and the fan speed changed automatically. 
+To test my code I put the state changing functions in a loop and set a board level LED to turn on and off. I have not noticed much difference between low and medium, but there is definitely a difference between medium and high. Perhaps I'll have to stick with low and high. Further testing required, but the loop worked and the fan speed changed as expected. 
 <p>
-Update 12/13/2019: I played around with the OCR1A values directly and found that there really isn't a difference between 80, 100 and 120. At 150 it starts to be different and clearly at 320 (the current max setting I have, though this is something else I want to test with the TACH cable). For now, I'm sticking with a low and high setting. After some difficulty, I was able to get the Arduino to take commands from the Pi and distribute them to the PWM fan. The next step is getting the Pi to receive information from the Arduino. 
-
-<br>
-Update 1/7/2020: I've been working on this some more and I realized that I was missing some information. I completed the testing with the TACH function and was confused about my results so I started digging.
+<b>Update 12/13/2019:</b> I played around with the OCR1A values directly and found that there really isn't a difference between 80, 100 and 120. At 150 I start to notice a difference and clearly at 319 (the current max setting I have, though this is something else I want to test with the TACH cable). For now, I'm sticking with a low and high setting. After some difficulty, I was able to get the Arduino to take commands from the Pi and distribute them to the PWM fan. The next step is getting the Pi to receive information from the Arduino. 
+<p>
+<b>Update 12/20/2019:</b> I was able to get the Arduino to take commands from the pi but still need to get information back from the Arduino. 
+<p>
+<b>Update 1/7/2020:</b> I've been working on this some more and I realized that I was missing some information. I completed the testing with the TACH function and was confused about my results so I started digging. I found that I misunderstood the functions of OCR1A/B but thankfully my numbers are (or seem) correct. I'll have to test further. I thought that given the set up (phase and frequency correct PWM, no pre-scaler) that the high resolution of the PWM wave would allow me to more tightly control the fan but this doesn't seem to be the case. Perhaps its the fan that I chose? 
 <p>
 <h3> Power Considerations </h3>
 <a href=https://noctua.at/en/nf-b9-redux-1600-pwm> The fan </a href> I started with is a 12V, 8mA for a total input power of 96mW. As of 11/22/2019 I'm unsure if this fan will meet my needs. The company offers more fans, I picked this one off Amazon because it was cheap and would arrive quickly. I was surprised at how much more expensive (this fan is $11) PWM fans are compared to "regular" fans, which (of course depend on the style you get) I've found as low as $4. 
