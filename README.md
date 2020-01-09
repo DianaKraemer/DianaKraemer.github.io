@@ -2,7 +2,7 @@
 PlantCam
 
 Hardware list: <br>
-1 Arduino Uno <b>
+1 Arduino Uno <br>
 1 Raspbery pi 3B
 2 NRF24L01's
 1 STEMMA soil reader (adafruit)
